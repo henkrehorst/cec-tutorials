@@ -12,7 +12,7 @@ this tutorial. To access the cluster, each student should have been provided a
 OneDrive folder with the required credentials. We will now upload the folder to
 our respective VMs.
 
-## Demo
+## Session 1
 
 Let's start with downloading our folders into a known location in our
 computers. This part of the tutorial will depend on which ssh client you are
@@ -415,6 +415,119 @@ We can now stop our consumers:
 ```bash
 docker stop consumer_1 consumer_2
 ```
+
+## Session 2
+
+The goal of this session is to show you how to leverage the tools we provide you, so you can test the systems you are developing effectively. 
+
+The experiment-producer is the component you use to generate the events that your service has to consume. By passing specific parameters to the experiment-producer you will be able to vary the load applied to your service, and cross-reference the data it generates with the data you are computing and storing. 
+
+### Load Variability
+
+There are multiple ways you could use the experiment-producer to vary the load, however, the most efficient way is to use the integrated `--config-file <file>` parameter. This file, allows you to specify multiple experiments with varying configurations. For example, the following configuration starts 2 experiments, where the first will start immediately after the experiment-producer starts, and the second will start 30 seconds later: 
+
+```
+# loads/2.json
+[
+    {
+        "start_time": 0,
+        "researcher": "d.landau@uu.nl",
+        "num_sensors": 10,
+        "sample_rate": 1000,
+        "start_temperature": 0,
+        "stabilization_samples": 10,
+        "carry_out_samples": 50,
+        "temp_range": {
+            "lower_threshold": 100,
+            "upper_threshold": 150
+        }
+    },
+    {
+        "start_time": 30,
+        "researcher": "d.landau@uu.nl",
+        "num_sensors": 8,
+        "sample_rate": 200,
+        "start_temperature": 0,
+        "stabilization_samples": 10,
+        "carry_out_samples": 80,
+        "temp_range": {
+            "lower_threshold": 10,
+            "upper_threshold": 20
+        }
+    }
+]
+```
+
+You can estimate the load each experiment will generate in events/s using the following calculation `num_sensors * (1000/sample_rate)`. And the estimated duration of the experiment can be calculated with `stabilization_samples / (1000/sample_rate) + carry_out_sample / (1000/sample_rate)`. As such, for the same example as the one above, the production rate of the first experiment is `10 * (1000/1000) =10 events/s`, and it will run for `10 / (1000/1000) + 50 / (1000/1000) = 60 s`. The second experiment has a production rate of `8 * (1000/200) = 40 events/s` and will run for approximately `10 / (1000/200) + 80 / (1000/200) = 18s`.
+
+Given that the second experiment starts before the first experiment terminates, there will be some overlap between both experiments. As such, between seconds 30-48, the total production rate is the combination of the production rate of both experiments, i.e., `10 + 40 = 50 events/s`.
+
+Let's put this to the test. Create a network, start the production-rate visualiser, and make sure it is included in the network we just created:
+```bash
+docker network create producer
+docker run --network producer -d --rm --name production-rate -it -p 3005:8501 --rm --name production-rate dclandau/cec-production-rate --producer-connection producer:3001
+```
+
+Note that we also mapped the VM's port 3005 with the container's port 8501. If you now open your browser on `http://<your-vm-ip>:3005` you should see an empty graph. To start observing data in the graph displayed on the browser, start the producer as follows (please change the parameterised `<auth-dir>` and `<topic>` in the command): 
+```bash
+docker run --rm --name producer -v <auth-dir>:/experiment-producer/auth -v ./kafka/loads/2.json:/config.json -it --network producer dclandau/cec-experiment-producer -b kafka1.dlandau.nl:19092 --config-file /config.json --topic <topic>
+```
+The graph should now display the rate at which data is produced in `events/s`.
+
+Let's run a similar configuration, but now we will start a 3rd experiment 45 seconds after we have started the producer:
+```
+# loads/3.json
+[
+    {
+        "start_time": 0,
+        "researcher": "d.landau@uu.nl",
+        "num_sensors": 10,
+        "sample_rate": 1000,
+        "start_temperature": 0,
+        "stabilization_samples": 10,
+        "carry_out_samples": 50,
+        "temp_range": {
+            "lower_threshold": 100,
+            "upper_threshold": 150
+        }
+    },
+    {
+        "start_time": 30,
+        "researcher": "d.landau@uu.nl",
+        "num_sensors": 8,
+        "sample_rate": 200,
+        "start_temperature": 0,
+        "stabilization_samples": 10,
+        "carry_out_samples": 80,
+        "temp_range": {
+            "lower_threshold": 10,
+            "upper_threshold": 20
+        }
+    },
+    {
+        "start_time": 45,
+        "researcher": "d.landau@uu.nl",
+        "num_sensors": 20,
+        "sample_rate": 500,
+        "start_temperature": 0,
+        "stabilization_samples": 5,
+        "carry_out_samples": 50,
+        "temp_range": {
+            "lower_threshold": 100,
+            "upper_threshold": 150
+        }
+    }
+]
+```
+
+Make sure you refresh your browser. After doing so, start the producer making sure that you change the configuration file to `./kafka/loads/3.json`. 
+```bash
+docker run --rm --name producer -v <auth-dir>:/experiment-producer/auth -v ./kafka/loads/3.json:/config.json -it --network producer dclandau/cec-experiment-producer -b kafka1.dlandau.nl:19092 --config-file /config.json --topic <topic>
+```
+
+You should now see that up until the 45th second, the graph looks very similar, however, since we have added another experiment starting at second 45, the remainder of the production rate will now also include this new experiment.
+
+### Data Consistency
 
 # Lab Assignment
 
