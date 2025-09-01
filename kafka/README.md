@@ -458,7 +458,7 @@ There are multiple ways you could use the experiment-producer to vary the load, 
 ]
 ```
 
-You can estimate the load each experiment will generate in events/s using the following calculation `num_sensors * (1000/sample_rate)`. And the estimated duration of the experiment can be calculated with `stabilization_samples / (1000/sample_rate) + carry_out_sample / (1000/sample_rate)`. As such, for the same example as the one above, the production rate of the first experiment is `10 * (1000/1000) =10 events/s`, and it will run for `10 / (1000/1000) + 50 / (1000/1000) = 60 s`. The second experiment has a production rate of `8 * (1000/200) = 40 events/s` and will run for approximately `10 / (1000/200) + 80 / (1000/200) = 18s`.
+You can estimate the load each experiment will generate in events/s using the following calculation `num_sensors * (1000/sample_rate)`. And the estimated duration of the experiment can be calculated with `stabilization_samples / (1000/sample_rate) + carry_out_sample / (1000/sample_rate)`. As such, for the same example as the one above, the production rate of the first experiment is `10 * (1000/1000) = 10 events/s`, and it will run for `10 / (1000/1000) + 50 / (1000/1000) = 60 s`. The second experiment has a production rate of `8 * (1000/200) = 40 events/s` and will run for approximately `10 / (1000/200) + 80 / (1000/200) = 18s`.
 
 Given that the second experiment starts before the first experiment terminates, there will be some overlap between both experiments. As such, between seconds 30-48, the total production rate is the combination of the production rate of both experiments, i.e., `10 + 40 = 50 events/s`.
 
@@ -526,6 +526,11 @@ docker run --rm --name producer -v <auth-dir>:/experiment-producer/auth -v ./kaf
 ```
 
 You should now see that up until the 45th second, the graph looks very similar, however, since we have added another experiment starting at second 45, the remainder of the production rate will now also include this new experiment.
+
+You may now stop the production-rate visualisation:
+```bash
+docker stop production-rate
+```
 
 ## Data Consistency
 
