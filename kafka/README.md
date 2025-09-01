@@ -12,13 +12,13 @@ this tutorial. To access the cluster, each student should have been provided a
 OneDrive folder with the required credentials. We will now upload the folder to
 our respective VMs.
 
-## Session 1
+# Session 1
 
 Let's start with downloading our folders into a known location in our
 computers. This part of the tutorial will depend on which ssh client you are
 using.
 
-### openssh
+## openssh
 
 If running an openssh client, you can run this command to copy a local file
 into your VM (don't forget to change the different parameters):
@@ -29,12 +29,12 @@ scp -r -i <your-pem-file> <local-credentials-directory> ubuntu@<your-VMs-public-
 # E.g. scp -r -i ../client50/ssh_key_50 ../client50 ubuntu@13.48.5.125:/home/ubuntu/cc-2023-tutorials/kafka/auth
 ```
 
-### Other clients
+## Other clients
 
 If running other clients they might have a specific way of allowing files to be
 transferred. If in doubt, raise your hand.
 
-# Simple Producer Consumer
+## Simple Producer Consumer
 
 We will now create a simple data producer, that will write messages/events into
 our kafka topic. At the same time, we will start a simple consumer that will
@@ -128,7 +128,7 @@ This must be the same as the topic passed to the producer. It then enters an
 infinite loop that polls to check whether there are any messages to be
 consumed, and if so prints them to standard output. 
 
-## Demo
+### Demo
 
 Start an ssh session with your vm. Change directory into the tutorial
 repository's directory, followed by: 
@@ -184,7 +184,7 @@ We can terminate our `simple_consumer` now:
 docker stop simple_consumer
 ```
 
-# Commit Offsets
+## Commit Offsets
 
 Our goal now is to understand the kafka's commit offsets. This functionality
 exists in Kafka, so it can track where a client left off the last time it
@@ -211,7 +211,7 @@ behaviour is determined by the `auto.offset.reset` parameter.
 > this behaviour to start consuming only what will be published from that
 > moment forward. 
 
-## Demo
+### Demo
 
 To demonstrate this functionality, we will start by creating 2 different
 consumers that have never read from the topic before. Their functionality will
@@ -310,7 +310,7 @@ We can now delete the consumer:
 docker stop consumer_commit
 ```
 
-# Consumer Group
+## Consumer Group
 
 A consumer group is an abstraction kafka provides that allows parallelizing the
 data consumption between the consumers belonging to the same group. The effect
@@ -341,7 +341,7 @@ The following figure illustrates Kafka's publish/subscribe communication model
 for a topic with 4 partitions: 
 ![Kafka Architecture](https://github.com/landaudiogo/cc-2023-tutorials/assets/26680755/d51aa0bc-7a74-4cac-9d78-6d1590d3de91)
 
-## Demo
+### Demo
 
 We will make use of our producer from before with the added code that includes
 a key on each message. The key value increments everytime we write a new
@@ -416,13 +416,13 @@ We can now stop our consumers:
 docker stop consumer_1 consumer_2
 ```
 
-## Session 2
+# Session 2
 
 The goal of this session is to show you how to leverage the tools we provide you, so you can test the systems you are developing effectively. 
 
 The experiment-producer is the component you use to generate the events that your service has to consume. By passing specific parameters to the experiment-producer you will be able to vary the load applied to your service, and cross-reference the data it generates with the data you are computing and storing. 
 
-### Load Variability
+## Load Variability
 
 There are multiple ways you could use the experiment-producer to vary the load, however, the most efficient way is to use the integrated `--config-file <file>` parameter. This file, allows you to specify multiple experiments with varying configurations. For example, the following configuration starts 2 experiments, where the first will start immediately after the experiment-producer starts, and the second will start 30 seconds later: 
 
@@ -527,7 +527,156 @@ docker run --rm --name producer -v <auth-dir>:/experiment-producer/auth -v ./kaf
 
 You should now see that up until the 45th second, the graph looks very similar, however, since we have added another experiment starting at second 45, the remainder of the production rate will now also include this new experiment.
 
-### Data Consistency
+## Data Consistency
+
+To understand whether your service is providing consistent data, we provide a script that outputs a ground truth with the temperature measurements you should be computing for each timestamp in an experiment. 
+
+The following command starts a producer, similar to how we have done in the previous runs. However **there are a few important differences to note**:
+
+* We run the producer in debug mode `-e RUST_LOG=debug`
+* We pass the producer the `--file-subscriber` flag
+* We mount a host directory `./logs` on its `/logs` path, which is also where the container will store its logs (`-v ./logs:/logs`).
+
+```bash
+docker run --rm -e RUST_LOG=debug --name producer -v <auth-dir>:/experiment-producer/auth -v ./kafka/loads/2.json:/config.json -v ./logs:/logs -it dclandau/cec-experiment-producer -b kafka1.dlandau.nl:19092 --topic <topic> --config-file /config.json --file-subscriber
+```
+
+After running the producer, in your current working directory, you should now see a new `./logs` directory, with a file whose contents look similar to this:
+```bash
+$ head ./logs/producer.json.log.2025-09-01
+{"timestamp":"2025-09-01T09:31:25.912995+02","level":"INFO","fields":{"message":"starting 8 workers"},"target":"actix_server::builder"}
+{"timestamp":"2025-09-01T09:31:25.913074+02","level":"INFO","fields":{"message":"Tokio runtime found; starting in existing Tokio runtime"},"target":"actix_server::server"}
+{"timestamp":"2025-09-01T09:31:25.913094+02","level":"INFO","fields":{"message":"starting service: \"actix-web-service-0.0.0.0:3001\", workers: 8, listening on: 0.0.0.0:3001"},"target":"actix_server::server"}
+{"timestamp":"2025-09-01T09:31:25.913105+02","level":"INFO","fields":{"message":"Client configured with SSL"},"target":"experiment_producer::events"}
+{"timestamp":"2025-09-01T09:31:25.928865+02","level":"INFO","fields":{"message":"Client configured with SSL"},"target":"experiment_producer::events"}
+{"timestamp":"2025-09-01T09:31:25.929993+02","level":"INFO","fields":{"stage":"configuration"},"target":"experiment_producer::simulator","span":{"experiment_id":"8f41f698-cce7-4f0b-b5ec-5dbc6cb5a53b","name":"experiment"},"spans":[{"experiment_id":"8f41f698-cce7-4f0b-b5ec-5dbc6cb5a53b","name":"experiment"}]}
+{"timestamp":"2025-09-01T09:31:26.205460+02","level":"INFO","fields":{"stage":"stabilization"},"target":"experiment_producer::simulator","span":{"experiment_id":"8f41f698-cce7-4f0b-b5ec-5dbc6cb5a53b","name":"experiment"},"spans":[{"experiment_id":"8f41f698-cce7-4f0b-b5ec-5dbc6cb5a53b","name":"experiment"}]}
+{"timestamp":"2025-09-01T09:31:26.383606+02","level":"DEBUG","fields":{"avg_temperature":12.5},"target":"experiment_producer::events","span":{"measurement_id":"ecb7b518-e344-49de-93fe-ced3aac8a9e8","name":"measurement"},"spans":[{"experiment_id":"8f41f698-cce7-4f0b-b5ec-5dbc6cb5a53b","name":"experiment"},{"measurement_id":"ecb7b518-e344-49de-93fe-ced3aac8a9e8","name":"measurement"}]}
+{"timestamp":"2025-09-01T09:31:26.383692+02","level":"DEBUG","fields":{"sensor":"0756c64a-8669-411c-bcb9-8580b193b197","temperature":13.469869613647461},"target":"experiment_producer::simulator","span":{"measurement_id":"ecb7b518-e344-49de-93fe-ced3aac8a9e8","name":"measurement"},"spans":[{"experiment_id":"8f41f698-cce7-4f0b-b5ec-5dbc6cb5a53b","name":"experiment"},{"measurement_id":"ecb7b518-e344-49de-93fe-ced3aac8a9e8","name":"measurement"}]}
+{"timestamp":"2025-09-01T09:31:26.383723+02","level":"DEBUG","fields":{"sensor":"b782e89e-0d59-45a2-86e4-9112ed16c8a9","temperature":13.270999908447266},"target":"experiment_producer::simulator","span":{"measurement_id":"ecb7b518-e344-49de-93fe-ced3aac8a9e8","name":"measurement"},"spans":[{"experiment_id":"8f41f698-cce7-4f0b-b5ec-5dbc6cb5a53b","name":"experiment"},{"measurement_id":"ecb7b518-e344-49de-93fe-ced3aac8a9e8","name":"measurement"}]}
+```
+
+To further help with validating the data you should be processing, the following command indicates for each experiment, what the average temperature should be for each measurement, the `OutOfRange` and the `Stabilized` events you should be emitting, and the timestamps a particular experiment changes stage (e.g. from stabilization -> carry out).
+
+```bash
+$ docker run -it -v ./logs:/logs dclandau/cec-production-validation /logs/producer.json.log.2025-09-01
+*******************************************************
+*                                                     *
+*   EXPERIMENT 5abe78fa-b7ba-49e6-8e89-6de7b5f4f91e   *
+*                                                     *
+*******************************************************
+
+[
+  {
+    "timestamp": "2025-09-01T09:35:09.800040+02",
+    "event_type": "new_stage",
+    "value": "configuration"
+  },
+  {
+    "timestamp": "2025-09-01T09:35:10.972326+02",
+    "event_type": "new_stage",
+    "value": "stabilization"
+  },
+  {
+    "timestamp": "2025-09-01T09:35:12.358513+02",
+    "event_type": "avg_temperature",
+    "value": {
+      "measurement_id": "e1c52710-9745-486a-b29b-6630aaa61f3c",
+      "average": 10.5
+    }
+  },
+  {
+    "timestamp": "2025-09-01T09:35:12.358553+02",
+    "event_type": "range_event",
+    "value": {
+      "measurement_id": "e1c52710-9745-486a-b29b-6630aaa61f3c",
+      "event": "Stabilized"
+    }
+  },
+  ...
+]
+
+*******************************************************
+*                                                     *
+*   EXPERIMENT a0537a46-909e-4d2b-b384-0337ea4786be   *
+*                                                     *
+*******************************************************
+
+[
+  ...
+  {
+    "timestamp": "2025-09-01T09:34:39.964556+02",
+    "event_type": "new_stage",
+    "value": "carryout"
+  },
+  ...
+  {
+    "timestamp": "2025-09-01T09:34:50.346880+02",
+    "event_type": "range_event",
+    "value": {
+      "measurement_id": "9eef3faf-1bc2-45f9-9844-1a3c45cf5c07",
+      "event": "OutOfRange"
+    }
+  },
+  ...
+]
+```
+
+If you run the producer again similar to how you did in the previous command: 
+```bash
+docker run --rm -e RUST_LOG=debug --name producer -v <auth-dir>:/experiment-producer/auth -v ./kafka/loads/2.json:/config.json -v ./logs:/logs -it dclandau/cec-experiment-producer -b kafka1.dlandau.nl:19092 --topic <topic> --config-file /config.json --file-subscriber
+```
+you will observe that depending on whether you are running the command on the same day, the data will end up in the same file. As such, it might become difficult to figure out which events were produced in this last producer run. To help you with this problem, you can run the same command above with a lower bound time filter, which only considers the events that were produced after a particular time. To illustrate this, if we run the command without a time-filter we should see events for all experiments (4 experiments - 2 per run):
+
+```bash
+$ docker run -it -v ./logs:/logs dclandau/cec-production-validation /logs/producer.json.log.2025-09-01
+*******************************************************
+*                                                     *
+*   EXPERIMENT 5abe78fa-b7ba-49e6-8e89-6de7b5f4f91e   *
+*                                                     *
+*******************************************************
+...
+
+*******************************************************
+*                                                     *
+*   EXPERIMENT a0537a46-909e-4d2b-b384-0337ea4786be   *
+*                                                     *
+*******************************************************
+...
+
+*******************************************************
+*                                                     *
+*   EXPERIMENT bb84a0b7-dd40-4cd9-a05e-bdd0668285e9   *
+*                                                     *
+*******************************************************
+...
+
+*******************************************************
+*                                                     *
+*   EXPERIMENT f785bf91-fa06-415e-aa1e-be15dce24b81   *
+*                                                     *
+*******************************************************
+...
+```
+
+However after applying a time-filter, we should only see two experiments from the last run:
+```bash
+$ docker run -it -v ./logs:/logs dclandau/cec-production-validation /logs/producer.json.log.2025-09-01 2025-09-01T10:03:29.595631+02
+*******************************************************
+*                                                     *
+*   EXPERIMENT bb84a0b7-dd40-4cd9-a05e-bdd0668285e9   *
+*                                                     *
+*******************************************************
+...
+
+*******************************************************
+*                                                     *
+*   EXPERIMENT f785bf91-fa06-415e-aa1e-be15dce24b81   *
+*                                                     *
+*******************************************************
+...
+```
+
 
 # Lab Assignment
 
