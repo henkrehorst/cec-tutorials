@@ -153,7 +153,7 @@ git clone https://github.com/EC-labs/cec-tutorials.git
 
 Change into the directory of our first demo:
 ```bash
-cd cc-tutorials-2023/docker/demo-1
+cd cec-tutorials/docker/demo-1
 ```
 
 We will use the following python script to understand some nuances when
@@ -634,7 +634,7 @@ The lab assignment has the following requirements:
    `docker/assignment` directory there is an example script (`run.sh`) that deploys the
    `notifications-service`. You can run the notifications-service with:
    ```bash
-   ./assignment/run.sh --secret-key QJUHsPhnA0eiqHuJqsPgzhDozYO4f1zh --external-ip localhost
+   bash docker/assignment/run.sh --secret-key QJUHsPhnA0eiqHuJqsPgzhDozYO4f1zh --external-ip localhost
    ```
 
    Note: The example script deploying the notifications-service container does
@@ -700,7 +700,7 @@ The lab assignment has the following requirements:
 
 ## Evaluation Procedure
 
-The lab assignments will be assessed during the tutorials on the 25th of 
+The lab assignments will be assessed during the tutorials on the 24th of 
 September. 
 
 During the assessment, I will ask you to execute the shortlived container 3
