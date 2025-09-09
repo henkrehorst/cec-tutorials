@@ -12,7 +12,7 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGTERM, signal_handler)
 
 c = Consumer({
-    'bootstrap.servers': '13.60.146.188:19093,13.60.146.188:29093,13.60.146.188:39093',
+    'bootstrap.servers': 'kafka1.dlandau.nl:19092,kafka2.dlandau.nl:29092,kafka3.dlandau.nl:39092',
     'group.id': f"{random.random()}",
     'auto.offset.reset': 'latest',
     'enable.auto.commit': 'true',

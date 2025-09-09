@@ -1,6 +1,3 @@
-#!/bin/bash
-
-
 script=$(basename "$0")
 
 USAGE="
@@ -57,6 +54,6 @@ fi
 
 docker run \
     --rm \
-    -v "$(realpath $auth)":/app/experiment-producer/auth \
+    -v "$(realpath $auth)":/experiment-producer/auth \
     dclandau/cec-experiment-producer \
     --topic "$topic" --brokers "$brokers" "$@"

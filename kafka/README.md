@@ -1,3 +1,11 @@
+# IMPORTANT
+
+**Make sure you have updated the cec-tutorials repository:**
+```bash
+cd cec-tutorials
+git pull
+```
+
 # Overview
 
 This tutorial aims to show how distributed systems communicate with one
@@ -9,14 +17,12 @@ industry due to its scalability, fault tolerance, availability, etc...
 
 A development Kafka cluster is setup to which we will connect to throughout
 this tutorial. To access the cluster, each student should have been provided a
-OneDrive folder with the required credentials. We will now upload the folder to
+credentials folder. We will now upload the folder to
 our respective VMs.
 
 # Session 1
 
-Let's start with downloading our folders into a known location in our
-computers. This part of the tutorial will depend on which ssh client you are
-using.
+Let's start with downloading our folders into a known location in our computers, followed by uploading the directory to our Virtual Machine. This part of the tutorial will depend on which ssh client you are using.
 
 ## openssh
 
@@ -38,7 +44,7 @@ transferred. If in doubt, raise your hand.
 
 We will now create a simple data producer, that will write messages/events into
 our kafka topic. At the same time, we will start a simple consumer that will
-read the messages that are being published. These are the simples interactions
+read the messages that are being published. These are the simplest interactions
 2 clients may have with the Kafka cluster. 
 
 The producer, 
@@ -690,11 +696,6 @@ service, and deserialize the data it produces.
 
 For this lab assignment, you will have to: 
 
-- Adapt the `start-producer.sh` script to start 3 instances of the
-  `experiment-producer` **CONCURRENTLY**. 
-  > Tip: 
-  > Consider creating a bash for loop around the command that instantiates the
-  > experiment-producer container.
 - Create a single consumer that deserializes all the messages produced by the
   experiment-producer instances. When reading a message produced into the
   topic, your consumer should, first print the message header `record_name`
@@ -717,8 +718,7 @@ For this lab assignment, you will have to:
 - You may create the consumer in any programming language, as long as it has
   support for kafka consumers and apache avro. E.g. Because rust has a rdkafka
   and apache avro library, the experiment-producer was developed in rust;
-  Python also has libraries for both, and for the output illustrated above, I
-  used Python.
+  Python also has libraries for both, and the output illustrated above uses Python.
 - Try changing the parameters passed into the `experiment-producer` such as the
   duration, sample-rate, stabilization-samples, carry-out-samples, etc...
   To see the available options, run the script with the `--help` parameter.
@@ -729,7 +729,7 @@ For this lab assignment, you will have to:
 
 ## Evaluation Procedure
 
-The lab assignments will be assessed during the tutorials on the 25th of
+The lab assignments will be assessed during the tutorials on the 24th of
 September. 
 
 During the assessment, you will start your consumer, and then start the 3

@@ -15,7 +15,7 @@ signal.signal(signal.SIGTERM, signal_handler)
 @click.argument('consumer_group')
 def consume(topic: str, consumer_group: str): 
     c = Consumer({
-        'bootstrap.servers': '13.60.146.188:19093,13.60.146.188:29093,13.60.146.188:39093',
+        'bootstrap.servers': 'kafka1.dlandau.nl:19092,kafka2.dlandau.nl:29092,kafka3.dlandau.nl:39092',
         'group.id': consumer_group,
         'auto.offset.reset': 'latest',
         'security.protocol': 'SSL',
