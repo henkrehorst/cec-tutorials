@@ -428,6 +428,21 @@ The goal of this session is to show you how to leverage the tools we provide you
 
 The experiment-producer is the component you use to generate the events that your service has to consume. By passing specific parameters to the experiment-producer you will be able to vary the load applied to your service, and cross-reference the data it generates with the data you are computing and storing. 
 
+Before we start, make sure you have an updated version of the repository, and that you are in the kafka tutorial directory: 
+```bash
+git pull
+cd kafka
+```
+
+To run a simple instance of the experiment-producer, run:
+```bash
+docker run \
+    --rm \
+    -v ./auth:/experiment-producer/auth \
+    dclandau/cec-experiment-producer \
+    --topic "<topic>" --brokers "kafka1.dlandau.nl:19092" 
+```
+
 ## Load Variability
 
 There are multiple ways you could use the experiment-producer to vary the load, however, the most efficient way is to use the integrated `--config-file <file>` parameter. This file, allows you to specify multiple experiments with varying configurations. For example, the following configuration starts 2 experiments, where the first will start immediately after the experiment-producer starts, and the second will start 30 seconds later: 
@@ -471,12 +486,12 @@ Given that the second experiment starts before the first experiment terminates, 
 Let's put this to the test. Create a network, start the production-rate visualiser, and make sure it is included in the network we just created:
 ```bash
 docker network create producer
-docker run --network producer -d --rm --name production-rate -it -p 3005:8501 --rm --name production-rate dclandau/cec-production-rate --producer-connection producer:3001
+docker run --network producer -d --rm --name production-rate -it -p 3007:8501 --rm --name production-rate dclandau/cec-production-rate --producer-connection producer:3001
 ```
 
-Note that we also mapped the VM's port 3005 with the container's port 8501. If you now open your browser on `http://<your-vm-ip>:3005` you should see an empty graph. To start observing data in the graph displayed on the browser, start the producer as follows (please change the parameterised `<auth-dir>` and `<topic>` in the command): 
+Note that we also mapped the VM's port 3007 with the container's port 8501. If you now open your browser on `http://<your-vm-ip>:3007` you should see an empty graph. To start observing data in the graph displayed on the browser, start the producer as follows (please change the parameterised `<topic>` in the command): 
 ```bash
-docker run --rm --name producer -v <auth-dir>:/experiment-producer/auth -v ./kafka/loads/2.json:/config.json -it --network producer dclandau/cec-experiment-producer -b kafka1.dlandau.nl:19092 --config-file /config.json --topic <topic>
+docker run --rm --name producer -v ./auth:/experiment-producer/auth -v ./loads/2.json:/config.json -it --network producer dclandau/cec-experiment-producer -b kafka1.dlandau.nl:19092 --config-file /config.json --topic <topic>
 ```
 The graph should now display the rate at which data is produced in `events/s`.
 
@@ -526,9 +541,9 @@ Let's run a similar configuration, but now we will start a 3rd experiment 45 sec
 ]
 ```
 
-Make sure you refresh your browser. After doing so, start the producer making sure that you change the configuration file to `./kafka/loads/3.json`. 
+Make sure you refresh your browser. After doing so, start the producer making sure that you change the configuration file to `./loads/3.json`. 
 ```bash
-docker run --rm --name producer -v <auth-dir>:/experiment-producer/auth -v ./kafka/loads/3.json:/config.json -it --network producer dclandau/cec-experiment-producer -b kafka1.dlandau.nl:19092 --config-file /config.json --topic <topic>
+docker run --rm --name producer -v ./auth:/experiment-producer/auth -v ./loads/3.json:/config.json -it --network producer dclandau/cec-experiment-producer -b kafka1.dlandau.nl:19092 --config-file /config.json --topic <topic>
 ```
 
 You should now see that up until the 45th second, the graph looks very similar, however, since we have added another experiment starting at second 45, the remainder of the production rate will now also include this new experiment.
@@ -549,12 +564,12 @@ The following command starts a producer, similar to how we have done in the prev
 * We mount a host directory `./logs` on its `/logs` path, which is also where the container will store its logs (`-v ./logs:/logs`).
 
 ```bash
-docker run --rm -e RUST_LOG=debug --name producer -v <auth-dir>:/experiment-producer/auth -v ./kafka/loads/2.json:/config.json -v ./logs:/logs -it dclandau/cec-experiment-producer -b kafka1.dlandau.nl:19092 --topic <topic> --config-file /config.json --file-subscriber
+docker run --rm -e RUST_LOG=debug --name producer -v ./auth:/experiment-producer/auth -v ./loads/2.json:/config.json -v ./logs:/logs -it dclandau/cec-experiment-producer -b kafka1.dlandau.nl:19092 --topic <topic> --config-file /config.json --file-subscriber
 ```
 
 After running the producer, in your current working directory, you should now see a new `./logs` directory, with a file whose contents look similar to this:
 ```bash
-$ head ./logs/producer.json.log.2025-09-01
+$ head ./logs/producer.json.log.<date>
 {"timestamp":"2025-09-01T09:31:25.912995+02","level":"INFO","fields":{"message":"starting 8 workers"},"target":"actix_server::builder"}
 {"timestamp":"2025-09-01T09:31:25.913074+02","level":"INFO","fields":{"message":"Tokio runtime found; starting in existing Tokio runtime"},"target":"actix_server::server"}
 {"timestamp":"2025-09-01T09:31:25.913094+02","level":"INFO","fields":{"message":"starting service: \"actix-web-service-0.0.0.0:3001\", workers: 8, listening on: 0.0.0.0:3001"},"target":"actix_server::server"}
@@ -570,7 +585,7 @@ $ head ./logs/producer.json.log.2025-09-01
 To further help with validating the data you should be processing, the following command indicates for each experiment, what the average temperature should be for each measurement, the `OutOfRange` and the `Stabilized` events you should be emitting, and the timestamps a particular experiment changes stage (e.g. from stabilization -> carry out).
 
 ```bash
-$ docker run -it -v ./logs:/logs dclandau/cec-production-validation /logs/producer.json.log.2025-09-01
+$ docker run -it -v ./logs:/logs dclandau/cec-production-validation /logs/producer.json.log.<date>
 *******************************************************
 *                                                     *
 *   EXPERIMENT 5abe78fa-b7ba-49e6-8e89-6de7b5f4f91e   *
@@ -635,12 +650,12 @@ $ docker run -it -v ./logs:/logs dclandau/cec-production-validation /logs/produc
 
 If you run the producer again similar to how you did in the previous command: 
 ```bash
-docker run --rm -e RUST_LOG=debug --name producer -v <auth-dir>:/experiment-producer/auth -v ./kafka/loads/2.json:/config.json -v ./logs:/logs -it dclandau/cec-experiment-producer -b kafka1.dlandau.nl:19092 --topic <topic> --config-file /config.json --file-subscriber
+docker run --rm -e RUST_LOG=debug --name producer -v ./auth:/experiment-producer/auth -v ./loads/2.json:/config.json -v ./logs:/logs -it dclandau/cec-experiment-producer -b kafka1.dlandau.nl:19092 --topic <topic> --config-file /config.json --file-subscriber
 ```
 you will observe that depending on whether you are running the command on the same day, the data will end up in the same file. As such, it might become difficult to figure out which events were produced in this last producer run. To help you with this problem, you can run the same command above with a lower bound time filter, which only considers the events that were produced after a particular time. To illustrate this, if we run the command without a time-filter we should see events for all experiments (4 experiments - 2 per run):
 
 ```bash
-$ docker run -it -v ./logs:/logs dclandau/cec-production-validation /logs/producer.json.log.2025-09-01
+$ docker run -it -v ./logs:/logs dclandau/cec-production-validation /logs/producer.json.log.<date>
 *******************************************************
 *                                                     *
 *   EXPERIMENT 5abe78fa-b7ba-49e6-8e89-6de7b5f4f91e   *
@@ -672,7 +687,7 @@ $ docker run -it -v ./logs:/logs dclandau/cec-production-validation /logs/produc
 
 However after applying a time-filter, we should only see two experiments from the last run:
 ```bash
-$ docker run -it -v ./logs:/logs dclandau/cec-production-validation /logs/producer.json.log.2025-09-01 2025-09-01T10:03:29.595631+02
+$ docker run -it -v ./logs:/logs dclandau/cec-production-validation /logs/producer.json.log.<date> <timestamp>
 *******************************************************
 *                                                     *
 *   EXPERIMENT bb84a0b7-dd40-4cd9-a05e-bdd0668285e9   *
